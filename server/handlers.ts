@@ -20,6 +20,9 @@ export const stockCandles = (ctx: Ctx) =>
     } catch (e) {
       // 한국 주식은 네이버로 재시도
       if (parseKoreanSymbol(symbol)) return { data: await naverWeekly(symbol), ttl: 600 };
+      if (e instanceof HttpError && e.status === 404) {
+        throw new HttpError(404, `'${symbol}' 종목을 찾을 수 없습니다. 검색 결과에서 종목을 선택해 주세요.`);
+      }
       throw e;
     }
   });

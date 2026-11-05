@@ -9,7 +9,20 @@ interface Props {
   onOpen: (f: Favorite) => void;
 }
 
-const SYMBOL_RE = /^([0-9]{6}(\.(KS|KQ))?|[A-Z][A-Z0-9.\-^=]{0,14})$/i;
+// '바로 열기'는 티커처럼 보이는 입력에만 제공 (예: 005930, 005930.KQ, AAPL, BRK-B, ^GSPC)
+const SYMBOL_RE = /^(\d{6}(\.(KS|KQ))?|\^?[A-Z]{1,5}([.-][A-Z]{1,3})?)$/i;
+
+const matchCrypto = (m: CryptoMarket, term: string) =>
+  m.base.toLowerCase().startsWith(term) ||
+  m.name.toLowerCase().includes(term) ||
+  (m.koreanName ?? '').includes(term);
+
+const cryptoItem = (m: CryptoMarket): SearchItem => ({
+  type: 'crypto',
+  symbol: m.base,
+  name: m.koreanName ? `${m.koreanName} (${m.name})` : m.name,
+  exchange: ['바이낸스', m.upbit && '업비트', m.coinbase && '코인베이스'].filter(Boolean).join(' · '),
+});
 
 export default function SearchPage({ mode, onMode, onOpen }: Props) {
   const [q, setQ] = useState('');
@@ -19,9 +32,10 @@ export default function SearchPage({ mode, onMode, onOpen }: Props) {
   const [error, setError] = useState<string | null>(null);
   const favs = useFavorites();
 
+  // 코인 목록은 주식 탭에서도 '비트코인' 같은 검색어를 코인으로 안내하기 위해 미리 받아 둔다
   useEffect(() => {
-    if (mode !== 'crypto' || markets) return;
-    api.cryptoMarkets().then(setMarkets, (e: Error) => setError(e.message));
+    if (markets) return;
+    api.cryptoMarkets().then(setMarkets, (e: Error) => mode === 'crypto' && setError(e.message));
   }, [mode, markets]);
 
   useEffect(() => {
@@ -50,21 +64,14 @@ export default function SearchPage({ mode, onMode, onOpen }: Props) {
   const items: SearchItem[] = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (mode === 'crypto') {
-      const list = (markets ?? []).filter(
-        (m) =>
-          !term ||
-          m.base.toLowerCase().startsWith(term) ||
-          m.name.toLowerCase().includes(term) ||
-          (m.koreanName ?? '').includes(term),
-      );
-      return list.slice(0, 80).map((m) => ({
-        type: 'crypto' as const,
-        symbol: m.base,
-        name: m.koreanName ? `${m.koreanName} (${m.name})` : m.name,
-        exchange: ['바이낸스', m.upbit && '업비트', m.coinbase && '코인베이스'].filter(Boolean).join(' · '),
-      }));
+      return (markets ?? [])
+        .filter((m) => !term || matchCrypto(m, term))
+        .slice(0, 80)
+        .map(cryptoItem);
     }
-    const out = [...stocks];
+    // 주식 탭에서 코인 이름을 검색한 경우 상위 3개 코인을 함께 보여준다
+    const coins = term.length >= 2 ? (markets ?? []).filter((m) => matchCrypto(m, term)).slice(0, 3).map(cryptoItem) : [];
+    const out = [...coins, ...stocks];
     const raw = q.trim().toUpperCase();
     if (raw && SYMBOL_RE.test(raw) && !out.some((s) => s.symbol === raw)) {
       const sym = /^\d{6}$/.test(raw) ? `${raw}.KS` : raw;
@@ -111,6 +118,7 @@ export default function SearchPage({ mode, onMode, onOpen }: Props) {
       <ul className="list">
         {items.map((it) => (
           <li key={it.type + it.symbol} className="row" onClick={() => onOpen(toFav(it))}>
+            {it.type !== mode && <span className={'badge ' + it.type}>코인</span>}
             <div className="row-main">
               <div className="row-name">{it.name}</div>
               <div className="row-sub">
