@@ -10,6 +10,7 @@ interface YahooChart {
             symbol: string;
             currency?: string;
             gmtoffset?: number;
+            dataGranularity?: string;
             longName?: string;
             shortName?: string;
           };
@@ -65,14 +66,28 @@ export function parseYahooWeekly(json: YahooChart): CandlesResponse {
   };
 }
 
+/** 연속된 캔들 간격의 중앙값이 7일인지 확인 (월봉 등 잘못된 간격 방지) */
+export function looksWeekly(times: number[]): boolean {
+  if (times.length < 3) return true;
+  const gaps = times.slice(1).map((t, i) => t - times[i]).sort((a, b) => a - b);
+  return gaps[gaps.length >> 1] === 7 * 86400;
+}
+
 export async function yahooWeekly(symbol: string): Promise<CandlesResponse> {
   let lastErr: unknown;
   for (const host of HOSTS) {
     try {
+      // range=max 로 요청하면 Yahoo 가 interval 을 무시하고 월봉(1mo)을 돌려주므로
+      // period1/period2 로 기간을 명시해야 주봉이 온다.
+      const now = Math.floor(Date.now() / 1000);
       const json = await fetchJson<YahooChart>(
-        `${host}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1wk&range=max&includePrePost=false&events=`,
+        `${host}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1wk&period1=0&period2=${now}&includePrePost=false&events=`,
       );
-      return parseYahooWeekly(json);
+      const g = json.chart.result?.[0]?.meta.dataGranularity;
+      if (g && g !== '1wk') throw new Error(`Yahoo 가 주봉이 아닌 ${g} 데이터를 반환했습니다`);
+      const r = parseYahooWeekly(json);
+      if (!looksWeekly(r.candles.map((c) => c.time))) throw new Error('Yahoo 데이터 간격이 주봉이 아닙니다');
+      return r;
     } catch (e) {
       lastErr = e;
     }

@@ -6,7 +6,7 @@ import { parseCoinbaseDaily } from '../server/coinbase';
 import { parseKoreanSymbol, parseNaverWeeklyXml } from '../server/naver';
 import { coinbasePremium, upbitPremium } from '../shared/premium';
 import { parseUpbitWeeks } from '../server/upbit';
-import { parseYahooWeekly } from '../server/yahoo';
+import { looksWeekly, parseYahooWeekly } from '../server/yahoo';
 
 const utc = (s: string) => Date.parse(s) / 1000;
 const MON1 = utc('2024-01-01T00:00:00Z');
@@ -56,6 +56,15 @@ describe('Yahoo 주봉 정규화', () => {
     });
     expect(r.candles).toHaveLength(1);
     expect(r.candles[0].time).toBe(MON1);
+  });
+});
+
+describe('주봉 간격 검사', () => {
+  const W = 7 * 86400;
+  it('주봉은 통과, 월봉은 거부', () => {
+    expect(looksWeekly([0, W, 2 * W, 3 * W, 5 * W])).toBe(true); // 휴장 주 1개 있어도 통과
+    // 실제로 받은 삼성전자 데이터 (4~5주 간격)
+    expect(looksWeekly([949276800, 951696000, 954115200, 957139200])).toBe(false);
   });
 });
 
