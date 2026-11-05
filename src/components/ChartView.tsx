@@ -37,8 +37,8 @@ export default function ChartView({ type, symbol, onBack }: Props) {
     );
     if (isCrypto) {
       api.cryptoMarkets().then(
-        (ms) => {
-          const m = ms.find((x) => x.base === symbol);
+        ({ markets }) => {
+          const m = markets.find((x) => x.base === symbol);
           if (alive && m?.koreanName) setCryptoName(`${m.koreanName} (${m.name})`);
         },
         () => {},

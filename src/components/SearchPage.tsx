@@ -27,6 +27,7 @@ const cryptoItem = (m: CryptoMarket): SearchItem => ({
 export default function SearchPage({ mode, onMode, onOpen }: Props) {
   const [q, setQ] = useState('');
   const [markets, setMarkets] = useState<CryptoMarket[] | null>(null);
+  const [fallback, setFallback] = useState<string | null>(null);
   const [stocks, setStocks] = useState<SearchItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +36,13 @@ export default function SearchPage({ mode, onMode, onOpen }: Props) {
   // 코인 목록은 주식 탭에서도 '비트코인' 같은 검색어를 코인으로 안내하기 위해 미리 받아 둔다
   useEffect(() => {
     if (markets) return;
-    api.cryptoMarkets().then(setMarkets, (e: Error) => mode === 'crypto' && setError(e.message));
+    api.cryptoMarkets().then(
+      (r) => {
+        setMarkets(r.markets);
+        setFallback(r.fallbackReason ?? null);
+      },
+      (e: Error) => mode === 'crypto' && setError(e.message),
+    );
   }, [mode, markets]);
 
   useEffect(() => {
@@ -111,6 +118,9 @@ export default function SearchPage({ mode, onMode, onOpen }: Props) {
       </header>
       {error && <p className="warn pad small">{error}</p>}
       {mode === 'crypto' && !markets && !error && <p className="muted pad">목록 불러오는 중…</p>}
+      {mode === 'crypto' && fallback && (
+        <p className="warn pad small">바이낸스 연결 실패({fallback}) — 업비트·코인베이스 목록으로 표시합니다</p>
+      )}
       {mode === 'stock' && loading && <p className="muted pad small">검색 중…</p>}
       {mode === 'stock' && !q.trim() && (
         <p className="muted pad small">한국 주식은 종목명이나 6자리 코드로, 해외 주식은 티커(AAPL, TSLA)로 검색하세요.</p>
