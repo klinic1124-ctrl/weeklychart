@@ -8,6 +8,7 @@ import {
   type BinanceMiniTicker,
   type Kline,
 } from '../../shared/binance';
+import { coinbaseWeeklyCloses } from '../../shared/coinbase';
 import { buildMarkets } from '../../shared/markets';
 import { coinbasePremium, upbitPremium } from '../../shared/premium';
 import type {
@@ -84,11 +85,22 @@ async function premium(base: string): Promise<PremiumResponse> {
   const src = await getJson<PremiumSources>(
     `/api/crypto/premium?base=${encodeURIComponent(base)}&since=${candles[0].time}`,
   );
+  let cb = new Map(src.coinbase);
+  let warnings = src.warnings ?? [];
+  // 서버(Cloudflare)에서 코인베이스 조회가 실패했으면 휴대폰에서 직접 시도
+  if (!cb.size && warnings.some((w) => w.startsWith('코인베이스'))) {
+    try {
+      cb = await coinbaseWeeklyCloses(base, candles[0].time, <T>(u: string) => getJson<T>(u, 10000));
+      warnings = warnings.filter((w) => !w.startsWith('코인베이스'));
+    } catch (e) {
+      warnings = [...warnings, `코인베이스(직접): ${(e as Error).message}`];
+    }
+  }
   return {
     base,
     upbit: upbitPremium(candles, new Map(src.upbit), new Map(src.usdkrw)),
-    coinbase: coinbasePremium(candles, new Map(src.coinbase)),
-    ...(src.warnings ? { warnings: src.warnings } : {}),
+    coinbase: coinbasePremium(candles, cb),
+    ...(warnings.length ? { warnings } : {}),
   };
 }
 

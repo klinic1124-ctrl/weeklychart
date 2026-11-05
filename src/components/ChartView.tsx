@@ -117,8 +117,10 @@ export default function ChartView({ type, symbol, onBack }: Props) {
             <span style={{ color: C.coinbase }}>● 코인베이스 {pct(maps.coinbase.get(c.time))}</span>
             <span className="muted"> (별도 눈금)</span>
             {!premium.upbit.length && <span className="muted"> · 업비트 미상장</span>}
-            {!premium.coinbase.length && <span className="muted"> · 코인베이스 미상장</span>}
-            {premium.warnings?.length ? <span className="warn"> · 일부 조회 실패</span> : null}
+            {!premium.coinbase.length && !premium.warnings?.some((w) => w.startsWith('코인베이스')) && (
+              <span className="muted"> · 코인베이스 미상장</span>
+            )}
+            {premium.warnings?.length ? <div className="warn">{premium.warnings.join(' / ')}</div> : null}
           </>
         ) : premiumError ? (
           <span className="warn">프리미엄 조회 실패: {premiumError}</span>

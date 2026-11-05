@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { toWeekly } from '../server/aggregate';
+import { toWeekly } from '../shared/aggregate';
 import { parseKlines } from '../shared/binance';
 import { buildMarkets } from '../shared/markets';
-import { parseCoinbaseDaily } from '../server/coinbase';
+import { parseCoinbaseAdvanced, parseCoinbaseDaily } from '../shared/coinbase';
 import { parseKoreanSymbol, parseNaverWeeklyXml } from '../server/naver';
 import { coinbasePremium, upbitPremium } from '../shared/premium';
 import { parseUpbitWeeks } from '../server/upbit';
@@ -109,6 +109,11 @@ describe('암호화폐', () => {
       [MON1, 9, 10.2],
       [MON2, 10, 10.5],
     ]);
+  });
+  it('코인베이스 Advanced API 파싱', () => {
+    expect(
+      parseCoinbaseAdvanced({ candles: [{ start: String(MON1), low: '1', high: '3', open: '2', close: '2.5', volume: '10' }] }),
+    ).toEqual([{ time: MON1, open: 2, high: 3, low: 1, close: 2.5, volume: 10 }]);
   });
   it('프리미엄 계산 (환율 공백은 직전 값으로)', () => {
     const binance = [

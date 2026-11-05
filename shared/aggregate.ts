@@ -1,5 +1,5 @@
-import type { Candle } from '../shared/types';
-import { weekStart } from '../shared/week';
+import type { Candle } from './types';
+import { weekStart } from './week';
 
 /**
  * 시간순 정렬된 캔들(일봉 또는 중복 포함 주봉)을 주봉으로 합친다.
