@@ -1,0 +1,7 @@
+# 서비스워커와 HTML 은 항상 최신 버전을 확인하도록 캐시 금지
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+/index.html
+  Cache-Control: no-cache
+/
+  Cache-Control: no-cache
