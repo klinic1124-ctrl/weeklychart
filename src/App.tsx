@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
 import type { AssetType } from '../shared/types';
 import ChartView from './components/ChartView';
+import DiagPage from './components/DiagPage';
 import FavoritesPage from './components/FavoritesPage';
 import SearchPage from './components/SearchPage';
 import type { Favorite } from './lib/favorites';
 
 type Route =
   | { page: 'favorites' }
+  | { page: 'diag' }
   | { page: 'search'; mode: AssetType }
   | { page: 'chart'; type: AssetType; symbol: string };
 
 function parse(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
+  if (parts[0] === 'diag') return { page: 'diag' };
   if (parts[0] === 'search') return { page: 'search', mode: parts[1] === 'crypto' ? 'crypto' : 'stock' };
   if (parts[0] === 'chart' && (parts[1] === 'stock' || parts[1] === 'crypto') && parts[2]) {
     return { page: 'chart', type: parts[1], symbol: parts[2].toUpperCase() };
@@ -37,6 +40,8 @@ export default function App() {
 
   const open = (f: Favorite) => go(`#/chart/${f.type}/${encodeURIComponent(f.symbol)}`);
 
+  if (route.page === 'diag') return <DiagPage onBack={() => go('#/', true)} />;
+
   if (route.page === 'chart') {
     return (
       <ChartView
@@ -52,7 +57,7 @@ export default function App() {
     <div className="shell">
       <main>
         {route.page === 'favorites' ? (
-          <FavoritesPage onOpen={open} onSearch={() => go('#/search')} />
+          <FavoritesPage onOpen={open} onSearch={() => go('#/search')} onDiag={() => go('#/diag')} />
         ) : (
           <SearchPage mode={route.mode} onMode={(m) => go(`#/search/${m}`, true)} onOpen={open} />
         )}

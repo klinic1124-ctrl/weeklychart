@@ -7,6 +7,7 @@ import { fmtPct, fmtPrice } from '../lib/format';
 interface Props {
   onOpen: (f: Favorite) => void;
   onSearch: () => void;
+  onDiag: () => void;
 }
 
 function Quote({ f }: { f: Favorite }) {
@@ -38,7 +39,7 @@ function Quote({ f }: { f: Favorite }) {
   );
 }
 
-export default function FavoritesPage({ onOpen, onSearch }: Props) {
+export default function FavoritesPage({ onOpen, onSearch, onDiag }: Props) {
   const list = useFavorites();
   const [edit, setEdit] = useState(false);
 
@@ -89,6 +90,9 @@ export default function FavoritesPage({ onOpen, onSearch }: Props) {
           ))}
         </ul>
       )}
+      <button className="footer-link" onClick={onDiag}>
+        연결 진단 · 빌드 {__BUILD__}
+      </button>
     </div>
   );
 }

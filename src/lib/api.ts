@@ -1,4 +1,5 @@
 import {
+  BINANCE_HOSTS,
   binanceGet,
   miniTickersPath,
   NotListed,
@@ -63,7 +64,7 @@ async function getJson<T>(url: string, timeoutMs = 15000): Promise<T> {
 
 /** 바이낸스는 클라우드 서버 IP를 차단하므로 브라우저에서 직접 호출, 실패 시 서버 경유 */
 async function binanceDirect<T>(path: string): Promise<T> {
-  return binanceGet(path, (u) => getJson<T>(u, 6000));
+  return binanceGet(path, (u) => getJson<T>(u, 5000), BINANCE_HOSTS.slice(0, 2));
 }
 
 async function cryptoCandles(base: string): Promise<CandlesResponse> {

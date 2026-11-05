@@ -35,9 +35,13 @@ export function parseKlines(rows: Kline[]): Candle[] {
 export class NotListed extends Error {}
 
 /** 호스트를 순서대로 시도. 400(심볼 없음)은 즉시 NotListed 로 중단 */
-export async function binanceGet<T>(path: string, getJson: (url: string) => Promise<T>): Promise<T> {
+export async function binanceGet<T>(
+  path: string,
+  getJson: (url: string) => Promise<T>,
+  hosts: string[] = BINANCE_HOSTS,
+): Promise<T> {
   let lastErr: unknown;
-  for (const host of BINANCE_HOSTS) {
+  for (const host of hosts) {
     try {
       return await getJson(host + path);
     } catch (e) {

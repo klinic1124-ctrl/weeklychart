@@ -102,3 +102,10 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg);
 }
 .pane-legend b { font-weight: 700; }
+
+.footer-link { margin: auto auto 12px; padding: 12px; font-size: 11px; color: var(--muted); }
+.diag { width: calc(100% - 24px); margin: 0 12px; border-collapse: collapse; font-size: 13px; }
+.diag td { padding: 6px 4px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.diag td.ok { color: #22c55e; font-weight: 700; }
+.diag td.bad { color: #f04452; font-weight: 700; }
+h3.pad { font-size: 14px; margin: 16px 0 6px; }

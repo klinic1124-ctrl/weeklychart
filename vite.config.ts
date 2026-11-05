@@ -3,7 +3,11 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { mockApi } from './scripts/mockApi';
 
+// 화면에 표시할 빌드 식별자 (Cloudflare 빌드 시 커밋 해시 사용)
+const BUILD = `${(process.env.CF_PAGES_COMMIT_SHA ?? 'local').slice(0, 7)} ${new Date().toISOString().slice(5, 16).replace('T', ' ')}`;
+
 export default defineConfig({
+  define: { __BUILD__: JSON.stringify(BUILD) },
   plugins: [
     react(),
     // MOCK_API=1 이면 개발 서버에서 가짜 데이터로 /api 응답 (외부 API 없이 화면 확인용)
