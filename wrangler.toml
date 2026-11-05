@@ -1,0 +1,4 @@
+# Cloudflare Pages 설정 (프론트엔드 dist + functions/ 의 API 프록시)
+name = "weekly-chart"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-06-01"
