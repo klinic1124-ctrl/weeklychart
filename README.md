@@ -16,7 +16,7 @@
 |---|---|
 | 주식 주봉 | Yahoo Finance (`AAPL`, `005930.KS`, `035720.KQ`) — 한국 주식은 실패 시 네이버 금융으로 재시도 |
 | 주식 검색 | 네이버 자동완성(한글/국내) + Yahoo 검색(해외) |
-| 암호화폐 주봉 | 바이낸스 USDT 마켓 (`data-api.binance.vision`) |
+| 암호화폐 주봉 | 바이낸스 USDT 마켓 — **브라우저(휴대폰)에서 직접 호출** (바이낸스가 Cloudflare 서버 IP를 403으로 차단하기 때문). 실패 시 서버 경유로 재시도 |
 | 업비트 프리미엄 | 업비트 KRW 주봉 종가 ÷ (바이낸스 종가 × USD/KRW 환율(Yahoo `KRW=X`)) − 1 |
 | 코인베이스 프리미엄 | 코인베이스 USD 종가(일봉→주봉 집계) ÷ 바이낸스 종가 − 1 |
 
@@ -40,9 +40,9 @@ API (`/api`, 엣지 캐시 적용):
 |---|---|
 | `GET /api/stock/candles?symbol=005930.KS` | 주식 주봉 |
 | `GET /api/stock/search?q=삼성` | 주식 검색 |
-| `GET /api/crypto/candles?base=BTC` | 바이낸스 주봉 |
-| `GET /api/crypto/premium?base=BTC` | 업비트/코인베이스 프리미엄 (주별 %) |
-| `GET /api/crypto/markets` | 코인 목록 (거래대금순, 한글명, 업비트/코인베이스 상장 여부) |
+| `GET /api/crypto/candles?base=BTC` | 바이낸스 주봉 (서버 경유 대체 경로, 차단될 수 있음) |
+| `GET /api/crypto/premium?base=BTC&since=<초>` | 프리미엄 계산용 원천 데이터: 업비트 KRW 종가, 코인베이스 USD 종가, USD/KRW 환율 (주별). 바이낸스 종가와의 결합·% 계산은 앱에서 수행 |
+| `GET /api/crypto/exchanges` | 업비트 한글명, 코인베이스 상장 목록 |
 
 ## 개발
 

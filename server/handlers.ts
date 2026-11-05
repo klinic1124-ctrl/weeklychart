@@ -1,9 +1,9 @@
-import type { CandlesResponse, CryptoMarket, PremiumResponse, SearchItem } from '../shared/types';
+import type { CandlesResponse, Close, CryptoExchanges, PremiumSources, SearchItem } from '../shared/types';
+import { NotListed } from '../shared/binance';
 import { binanceTickers, binanceWeekly } from './binance';
 import { coinbaseUsdBases, coinbaseWeeklyCloses } from './coinbase';
 import { HttpError } from './http';
 import { naverSearch, naverWeekly, parseKoreanSymbol } from './naver';
-import { coinbasePremium, upbitPremium } from './premium';
 import { cachedHandler, type Ctx, requireParam } from './respond';
 import { upbitMarkets, upbitWeeklyCloses } from './upbit';
 import { yahooSearch, yahooWeekly } from './yahoo';
@@ -50,7 +50,10 @@ export const stockSearch = (ctx: Ctx) =>
 export const cryptoCandles = (ctx: Ctx) =>
   cachedHandler<CandlesResponse>(ctx, async (url) => {
     const base = requireParam(url, 'base', BASE_RE).toUpperCase();
-    const candles = await binanceWeekly(base);
+    const candles = await binanceWeekly(base).catch((e) => {
+      if (e instanceof NotListed) throw new HttpError(404, e.message);
+      throw e;
+    });
     return { data: { symbol: `${base}USDT`, name: base, currency: 'USDT', candles }, ttl: 300 };
   });
 
@@ -67,11 +70,11 @@ async function soft<T>(label: string, p: Promise<T>, empty: T, warnings: string[
 }
 
 export const cryptoPremium = (ctx: Ctx) =>
-  cachedHandler<PremiumResponse>(ctx, async (url) => {
+  cachedHandler<PremiumSources>(ctx, async (url) => {
     const base = requireParam(url, 'base', BASE_RE).toUpperCase();
-    const binance = await binanceWeekly(base);
-    if (!binance.length) return { data: { base, upbit: [], coinbase: [] }, ttl: 1800 };
-    const since = binance[0].time;
+    // 프리미엄을 계산할 시작 시점 = 바이낸스 첫 주봉 (클라이언트가 전달)
+    const sinceParam = Number(url.searchParams.get('since'));
+    const since = Number.isFinite(sinceParam) && sinceParam > 1e9 ? sinceParam : Date.UTC(2017, 0, 2) / 1000;
     const warnings: string[] = [];
     const empty = new Map<number, number>();
     const [up, fx, cb] = await Promise.all([
@@ -84,43 +87,31 @@ export const cryptoPremium = (ctx: Ctx) =>
       ),
       soft('코인베이스', coinbaseWeeklyCloses(base, since), empty, warnings),
     ]);
-    const data: PremiumResponse = {
+    const list = (m: Map<number, number>): Close[] =>
+      [...m.entries()].filter(([t]) => t >= since - 7 * 86400).sort((a, b) => a[0] - b[0]);
+    const data: PremiumSources = {
       base,
-      upbit: upbitPremium(binance, up, fx),
-      coinbase: coinbasePremium(binance, cb),
+      upbit: list(up),
+      coinbase: list(cb),
+      usdkrw: list(fx),
       ...(warnings.length ? { warnings } : {}),
     };
     return { data, ttl: warnings.length ? 120 : 1800 };
   });
 
-export const cryptoMarkets = (ctx: Ctx) =>
-  cachedHandler<CryptoMarket[]>(ctx, async () => {
-    const [tickers, upbit, cb] = await Promise.all([
-      binanceTickers(),
+export const cryptoExchanges = (ctx: Ctx) =>
+  cachedHandler<CryptoExchanges>(ctx, async () => {
+    const [upbit, cb, binance] = await Promise.all([
       upbitMarkets().catch(() => []),
       coinbaseUsdBases().catch(() => new Set<string>()),
+      binanceTickers().catch(() => undefined),
     ]);
-    const krNames = new Map<string, { ko: string; en: string }>();
-    for (const m of upbit) {
-      if (m.market.startsWith('KRW-')) krNames.set(m.market.slice(4), { ko: m.korean_name, en: m.english_name });
-    }
-    const out: CryptoMarket[] = [];
-    for (const t of tickers) {
-      if (!t.symbol.endsWith('USDT')) continue;
-      const qv = +t.quoteVolume;
-      if (!qv) continue;
-      const base = t.symbol.slice(0, -4);
-      const kr = krNames.get(base);
-      out.push({
-        base,
-        name: kr?.en ?? base,
-        ...(kr ? { koreanName: kr.ko } : {}),
-        lastPrice: +t.lastPrice,
-        quoteVolume: qv,
-        upbit: !!kr,
-        coinbase: cb.has(base),
-      });
-    }
-    out.sort((a, b) => b.quoteVolume - a.quoteVolume);
-    return { data: out, ttl: 3600 };
+    const data: CryptoExchanges = {
+      upbit: upbit
+        .filter((m) => m.market.startsWith('KRW-'))
+        .map((m) => ({ base: m.market.slice(4), ko: m.korean_name, en: m.english_name })),
+      coinbase: [...cb],
+      ...(binance ? { binance } : {}),
+    };
+    return { data, ttl: 3600 };
   });

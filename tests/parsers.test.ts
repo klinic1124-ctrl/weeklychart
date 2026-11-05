@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { toWeekly } from '../server/aggregate';
-import { parseKlines } from '../server/binance';
+import { parseKlines } from '../shared/binance';
+import { buildMarkets } from '../shared/markets';
 import { parseCoinbaseDaily } from '../server/coinbase';
 import { parseKoreanSymbol, parseNaverWeeklyXml } from '../server/naver';
-import { coinbasePremium, upbitPremium } from '../server/premium';
+import { coinbasePremium, upbitPremium } from '../shared/premium';
 import { parseUpbitWeeks } from '../server/upbit';
 import { parseYahooWeekly } from '../server/yahoo';
 
@@ -115,5 +116,19 @@ describe('암호화폐', () => {
       { time: MON2, value: -2 },
     ]);
     expect(coinbasePremium(binance, new Map([[MON2, 201]]))).toEqual([{ time: MON2, value: 0.5 }]);
+  });
+  it('코인 목록 결합 (거래대금순, 한글명, 상장 여부)', () => {
+    const r = buildMarkets(
+      [
+        { symbol: 'ETHUSDT', lastPrice: '3000', quoteVolume: '10' },
+        { symbol: 'BTCUSDT', lastPrice: '90000', quoteVolume: '20' },
+        { symbol: 'ETHBTC', lastPrice: '0.03', quoteVolume: '5' },
+        { symbol: 'DEADUSDT', lastPrice: '1', quoteVolume: '0' },
+      ],
+      { upbit: [{ base: 'BTC', ko: '비트코인', en: 'Bitcoin' }], coinbase: ['BTC', 'ETH'] },
+    );
+    expect(r.map((m) => m.base)).toEqual(['BTC', 'ETH']);
+    expect(r[0]).toMatchObject({ koreanName: '비트코인', upbit: true, coinbase: true });
+    expect(r[1]).toMatchObject({ upbit: false, coinbase: true });
   });
 });

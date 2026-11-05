@@ -47,3 +47,25 @@ export interface CryptoMarket {
   upbit: boolean;
   coinbase: boolean;
 }
+
+/** [주 시작(초), 종가] */
+export type Close = [number, number];
+
+/** 프리미엄 계산용 원천 데이터 (바이낸스 종가는 클라이언트가 직접 받아 결합) */
+export interface PremiumSources {
+  base: string;
+  /** 업비트 KRW 주봉 종가 */
+  upbit: Close[];
+  /** 코인베이스 USD 주봉 종가 (일봉 집계) */
+  coinbase: Close[];
+  /** USD/KRW 주봉 종가 */
+  usdkrw: Close[];
+  warnings?: string[];
+}
+
+export interface CryptoExchanges {
+  upbit: { base: string; ko: string; en: string }[];
+  coinbase: string[];
+  /** 서버에서 바이낸스 조회가 가능할 때만 포함 */
+  binance?: { symbol: string; lastPrice: string; quoteVolume: string }[];
+}

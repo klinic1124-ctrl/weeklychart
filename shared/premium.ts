@@ -1,4 +1,4 @@
-import type { Candle, Point } from '../shared/types';
+import type { Candle, Point } from './types';
 
 /** 주 키 기준으로 값을 정렬하고, 빈 주는 직전 값으로 채운 조회 함수를 만든다 (환율용) */
 export function forwardFill(m: Map<number, number>): (t: number) => number | undefined {

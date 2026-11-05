@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite';
-import type { Candle, CandlesResponse, CryptoMarket, PremiumResponse, SearchItem } from '../shared/types';
+import type { Candle, CandlesResponse, CryptoExchanges, PremiumSources, SearchItem } from '../shared/types';
 import { weekStart } from '../shared/week';
 
 /** 심볼 문자열로 시드가 고정되는 난수 */
@@ -29,12 +29,20 @@ function walk(seed: string, weeks: number, start: number): Candle[] {
   return out;
 }
 
-const MARKETS: CryptoMarket[] = [
-  { base: 'BTC', name: 'Bitcoin', koreanName: '비트코인', lastPrice: 0, quoteVolume: 3e9, upbit: true, coinbase: true },
-  { base: 'ETH', name: 'Ethereum', koreanName: '이더리움', lastPrice: 0, quoteVolume: 2e9, upbit: true, coinbase: true },
-  { base: 'SOL', name: 'Solana', koreanName: '솔라나', lastPrice: 0, quoteVolume: 1e9, upbit: true, coinbase: true },
-  { base: 'BNB', name: 'BNB', lastPrice: 0, quoteVolume: 5e8, upbit: false, coinbase: false },
-];
+const EXCHANGES: CryptoExchanges = {
+  upbit: [
+    { base: 'BTC', ko: '비트코인', en: 'Bitcoin' },
+    { base: 'ETH', ko: '이더리움', en: 'Ethereum' },
+    { base: 'SOL', ko: '솔라나', en: 'Solana' },
+  ],
+  coinbase: ['BTC', 'ETH', 'SOL'],
+  binance: [
+    { symbol: 'BTCUSDT', lastPrice: '1', quoteVolume: '3000' },
+    { symbol: 'ETHUSDT', lastPrice: '1', quoteVolume: '2000' },
+    { symbol: 'SOLUSDT', lastPrice: '1', quoteVolume: '1000' },
+    { symbol: 'BNBUSDT', lastPrice: '1', quoteVolume: '500' },
+  ],
+};
 
 const STOCKS: SearchItem[] = [
   { type: 'stock', symbol: '005930.KS', name: '삼성전자', exchange: '코스피' },
@@ -70,18 +78,20 @@ export function mockApi(): Plugin {
           case '/api/crypto/candles':
             return send({ symbol: sym + 'USDT', name: sym, currency: 'USDT', candles: walk(sym, 430, 4000) });
           case '/api/crypto/premium': {
+            // 바이낸스 목업 종가에 프리미엄을 얹은 원천 데이터
             const c = walk(sym, 430, 4000);
             const r = rng(sym + 'p');
             let u = 2, cb = 0;
-            const d: PremiumResponse = {
+            const d: PremiumSources = {
               base: sym,
-              upbit: c.slice(20).map((x) => ({ time: x.time, value: +(u += (r() - 0.5) * 1.5).toFixed(2) })),
-              coinbase: c.slice(60).map((x) => ({ time: x.time, value: +(cb = cb * 0.7 + (r() - 0.5) * 0.4).toFixed(3) })),
+              upbit: c.slice(20).map((x) => [x.time, x.close * 1400 * (1 + (u += (r() - 0.5) * 1.5) / 100)]),
+              coinbase: c.slice(60).map((x) => [x.time, x.close * (1 + (cb = cb * 0.7 + (r() - 0.5) * 0.4) / 100)]),
+              usdkrw: c.map((x) => [x.time, 1400]),
             };
             return send(d);
           }
-          case '/api/crypto/markets':
-            return send(MARKETS);
+          case '/api/crypto/exchanges':
+            return send(EXCHANGES);
           case '/api/stock/search': {
             const q = (url.searchParams.get('q') ?? '').toLowerCase();
             return send(STOCKS.filter((s) => s.name.toLowerCase().includes(q) || s.symbol.toLowerCase().includes(q)));

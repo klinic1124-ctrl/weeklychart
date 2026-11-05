@@ -41,6 +41,17 @@ export default defineConfig({
               cacheableResponse: { statuses: [200] },
             },
           },
+          {
+            // 브라우저에서 직접 호출하는 바이낸스 시세도 오프라인 대비 캐시
+            urlPattern: ({ url }) => /(^|\.)binance\.(com|vision)$/.test(url.hostname),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'binance',
+              networkTimeoutSeconds: 10,
+              expiration: { maxEntries: 100, maxAgeSeconds: 14 * 86400 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
         ],
       },
     }),
