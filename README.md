@@ -59,10 +59,11 @@ npm test           # 단위 테스트
 1. Cloudflare 대시보드 → **Workers & Pages → Create → Pages → Connect to Git**
 2. 이 저장소 선택
 3. 빌드 설정
+   - Production branch: `main`
    - Framework preset: `None`
    - Build command: `npm run build`
    - Build output directory: `dist`
-4. **Save and Deploy** → `https://<프로젝트명>.pages.dev` 로 접속
+4. **Save and Deploy** → `https://weeklychart.pages.dev` 로 접속 (프로젝트 이름 `weeklychart`)
 
 `functions/` 폴더는 자동으로 API 로 배포됩니다. API 키나 환경변수는 필요 없습니다.
 
